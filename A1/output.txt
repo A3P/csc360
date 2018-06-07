@@ -1,8 +1,1 @@
-appendix_a.c
-appendix_b
-appendix_b.c
-appendix_c
-appendix_c.c
-output.txt
-sh360
-sh360.c
+:-)
