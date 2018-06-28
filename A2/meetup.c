@@ -10,7 +10,7 @@
 
 /*
  * Declarations for barrier shared variables -- plus concurrency-control
- * variables -- must START here.
+ * variables -- STARTS here.
  */
 static int group_size;
 static int meet_val;
@@ -29,6 +29,10 @@ void initialize_meetup(int n, int mf) {
         exit(1);
     }
 
+    /*
+     * Initializes the shared structures, including those used for
+     * synchronization.
+     */
     group_size = n;
     meet_val = mf;
     init_resource(&codeword, "meetup");
@@ -37,10 +41,6 @@ void initialize_meetup(int n, int mf) {
     sem_init(&sem_group, 0, 0);
     sem_init(&sem_leader, 0, 0);
     count = 0;
-    /*
-     * Initialize the shared structures, including those used for
-     * synchronization.
-     */
 }
 
 
@@ -59,9 +59,12 @@ void join_meetup(char *value, int len) {
             write_resource(&codeword, value, length);
         }
         sem_post(&sem_single);
+        // Waits until last thread for the group arrives
         sem_wait(&sem_group);
         read_resource(&codeword, value, MAX_VALUE_LEN);
         count--;
+        //Ensures all threads in current group have read before
+        //next group starts reading and writing.
         if(count == 1){
             sem_post(&sem_leader);
         } else {
@@ -69,6 +72,7 @@ void join_meetup(char *value, int len) {
         }
     } else {
         if(group_size > 1){
+            //checks for meetlast
             if(!meet_val) {
                 write_resource(&codeword, value, length);
             }
