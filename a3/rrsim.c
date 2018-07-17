@@ -24,10 +24,101 @@ void increment_count(taskval_t *t, void *arg) {
     (*ip)++;
 }
 
+// if an event arrives at the passed in tick, then remove it from the
+// event list and push it to the queue provided in the arguements
+taskval_t *check_arrival(taskval_t *t, int tick){
+    if(event_list != NULL && event_list->arrival_time <= tick){
+        taskval_t* temp = event_list;
+        event_list = remove_front(event_list);
+        //delete
+        printf("arrived at %05d: ",tick);
+        print_task(temp,NULL);
+
+        t = add_end(t, temp);
+    }
+    // Have to return t in case queue was NULL when the 
+    // function was called
+    return t;
+}
 
 void run_simulation(int qlen, int dlen) {
-    taskval_t *ready_q = NULL;
+    int tick = 0;
 
+    taskval_t *queue = NULL;
+
+    //delete
+    taskval_t* node = event_list;
+    printf("event list: \n");
+    while(node){
+        print_task(node,NULL);
+        if(node->cpu_request == 2){
+            printf("it's equal");
+        }
+        node = remove_front(node);
+    }
+    
+    // Runs the simulation until no more incoming, or ready events are left
+    while(event_list != NULL || queue != NULL){
+        queue = check_arrival(queue, tick);
+
+        // Will process task from the front of queue if not empty or else
+        // will "IDLE"
+        if(queue != NULL){
+            int i;
+            // Simulates the dispatch
+            for( i = 0; i<dlen; i++){
+                printf("[%05d] DISPATCHING\n",tick++);
+                queue = check_arrival(queue, tick);
+            }
+            // Simulates the ticking of the tasks
+            for( i = 0; i<qlen; i++){
+                printf(
+                    "[%05d] id=%05d req=%.2f used=%.2f\n",
+                    tick++, queue->id, queue->cpu_request, queue->cpu_used
+                );
+                printf("It gets here\n");
+                queue = check_arrival(queue, tick);
+                
+                //delete
+                if(queue->next != NULL){
+                    printf("2nd task in queue: ");
+                    print_task(queue->next,NULL);
+                }
+
+                queue->cpu_used += 1;
+                // Check if enough ticks are used for the task and if 
+                // finished it prints the relevant data
+                if(queue->cpu_request <= (int)queue->cpu_used){
+                    queue->cpu_used = queue->cpu_request;
+                    printf("time before assignment: %d\n",queue->finish_time);
+                    queue->finish_time = tick;
+                    float turn_around = queue->finish_time - queue->arrival_time;
+                    printf(
+                        "[%05d] id=%05d EXIT w=%.2f ta=%.2f\n",
+                        tick, queue->id, 
+                        turn_around - queue->cpu_used, turn_around
+                    );
+                    break;
+                }
+            }
+            // Remove task from queue. De-allocates the task's memory if
+            // the task is done or else it's moved to the back of the queue  
+            taskval_t* temp = queue;
+            queue = remove_front(queue);
+            if(temp->finish_time) {
+                printf("Not adding task to end\n");
+                end_task(temp);
+            } else {
+                // Have to reassign queue in case there is only one task else
+                // it will be equal to NULL after remove_front function.
+                queue = add_end(queue, temp);
+            }
+        } else {
+            printf("[%05d] IDLE\n",tick++);
+        }
+
+    }
+    printf("end of sim\n");
 }
 
 
