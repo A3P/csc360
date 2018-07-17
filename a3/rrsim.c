@@ -30,10 +30,6 @@ taskval_t *check_arrival(taskval_t *t, int tick){
     if(event_list != NULL && event_list->arrival_time <= tick){
         taskval_t* temp = event_list;
         event_list = remove_front(event_list);
-        //delete
-        printf("arrived at %05d: ",tick);
-        print_task(temp,NULL);
-
         t = add_end(t, temp);
     }
     // Have to return t in case queue was NULL when the 
@@ -43,26 +39,14 @@ taskval_t *check_arrival(taskval_t *t, int tick){
 
 void run_simulation(int qlen, int dlen) {
     int tick = 0;
-
     taskval_t *queue = NULL;
 
-    //delete
-    taskval_t* node = event_list;
-    printf("event list: \n");
-    while(node){
-        print_task(node,NULL);
-        if(node->cpu_request == 2){
-            printf("it's equal");
-        }
-        node = remove_front(node);
-    }
-    
     // Runs the simulation until no more incoming, or ready events are left
     while(event_list != NULL || queue != NULL){
         queue = check_arrival(queue, tick);
 
-        // Will process task from the front of queue if not empty or else
-        // will "IDLE"
+        // Will process task from the front of queue if not empty or
+        // else will "IDLE"
         if(queue != NULL){
             int i;
             // Simulates the dispatch
@@ -76,21 +60,13 @@ void run_simulation(int qlen, int dlen) {
                     "[%05d] id=%05d req=%.2f used=%.2f\n",
                     tick++, queue->id, queue->cpu_request, queue->cpu_used
                 );
-                printf("It gets here\n");
                 queue = check_arrival(queue, tick);
                 
-                //delete
-                if(queue->next != NULL){
-                    printf("2nd task in queue: ");
-                    print_task(queue->next,NULL);
-                }
-
                 queue->cpu_used += 1;
                 // Check if enough ticks are used for the task and if 
                 // finished it prints the relevant data
                 if(queue->cpu_request <= (int)queue->cpu_used){
                     queue->cpu_used = queue->cpu_request;
-                    printf("time before assignment: %d\n",queue->finish_time);
                     queue->finish_time = tick;
                     float turn_around = queue->finish_time - queue->arrival_time;
                     printf(
@@ -106,7 +82,6 @@ void run_simulation(int qlen, int dlen) {
             taskval_t* temp = queue;
             queue = remove_front(queue);
             if(temp->finish_time) {
-                printf("Not adding task to end\n");
                 end_task(temp);
             } else {
                 // Have to reassign queue in case there is only one task else
@@ -118,7 +93,6 @@ void run_simulation(int qlen, int dlen) {
         }
 
     }
-    printf("end of sim\n");
 }
 
 
@@ -160,14 +134,6 @@ int main(int argc, char *argv[]) {
         temp_task->cpu_used = 0.0;
         event_list = add_end(event_list, temp_task);
     }
-
-#ifdef DEBUG
-    int num_events;
-    apply(event_list, increment_count, &num_events);
-    printf("DEBUG: # of events read into list -- %d\n", num_events);
-    printf("DEBUG: value of quantum length -- %d\n", quantum_length);
-    printf("DEBUG: value of dispatch length -- %d\n", dispatch_length);
-#endif
 
     run_simulation(quantum_length, dispatch_length);
 
